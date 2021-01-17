@@ -213,6 +213,14 @@ reorient <- function(nim, data, verbose=FALSE, invert=FALSE, tol=1e-7) {
     }
     trans <- sign(ifelse(abs(RS) < tol, 0, RS)) # sign(ceiling(zapsmall(RS)))
     ## We will need to do something with the trans later...
+    # ENH: for oblique images, calculate the closest axis and use those instead
+    # note this happens after rounding with tol so backward campatability is mainrained
+    if(sum(trans != 0) != 3){
+      rotmat <- 0*RS
+      maxelems <- cbind(apply(RS, 2, function(x) which.max(abs(x))), 1:ncol(RS))
+      rotmat[maxelems] <- RS[maxelems]
+      trans <- sign(rotmat)
+    }
     # ENH: reverse sign on all first-row elements, not just trans[1,1]
     # this handles non axially-acquired images.
     # TODO: confirm invert still works the same
