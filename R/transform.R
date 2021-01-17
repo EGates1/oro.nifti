@@ -110,7 +110,10 @@ performPermutation <- function(T, real.dimensions, data, verbose=FALSE) {
       )(reverselist, workingdims) # An anonymous function
       translatedData <- translatedData[prs(1), prs(2), prs(3), prs(4), prs(5),
                                        drop=FALSE]
-      out <- array(aperm(translatedData, perms), real.dimensions)
+      # ENH: if original matrix has unequal numbers of rows/cols/slices
+      # then the array needs new dimensions permuted as well
+      out <- array(aperm(translatedData, perms),
+                   real.dimensions[perms[1:length(real.dimensions)]])
     } else {
       if (reverselist[1]) {
         if (verbose) {
@@ -210,7 +213,10 @@ reorient <- function(nim, data, verbose=FALSE, invert=FALSE, tol=1e-7) {
     }
     trans <- sign(ifelse(abs(RS) < tol, 0, RS)) # sign(ceiling(zapsmall(RS)))
     ## We will need to do something with the trans later...
-    trans[1,1] <- -1 * trans[1,1]
+    # ENH: reverse sign on all first-row elements, not just trans[1,1]
+    # this handles non axially-acquired images.
+    # TODO: confirm invert still works the same
+    trans[1,] = -1 * trans[1,] 
   } else {
     if (nim@"sform_code" > 0) {
       if (verbose) {
@@ -250,7 +256,16 @@ reorient <- function(nim, data, verbose=FALSE, invert=FALSE, tol=1e-7) {
     trans <- qr.solve(trans)
   }
   pp <- performPermutation(trans, real.dimensions, data, verbose)
-  return(pp)
+  # ENH: changed reorient to produce a nifti instead of just a matrix
+  # this allows pixdim and size to be modified properly as well
+  # BUG: qform and sform are not yet properly modified!
+  reor_nii <- nim
+  img_data(reor_nii) <- pp
+  dimidx <- c(1, 1 + abs(trans %*% 1:length(real.dimensions)))
+  dim_(reor_nii)[1:4] <- nim@"dim_"[dimidx]
+  pixdim(reor_nii)[1:4] <- pixdim(nim)[dimidx]
+  reor_nii@"reoriented" <- TRUE
+  return(reor_nii)
 }
 
 ############################################################################

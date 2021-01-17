@@ -490,8 +490,7 @@ nifti_header <- function(
   ##
   if (read_data) {
     if (reorient) {
-      nim@.Data <- reorient(nim, data, verbose=verbose)
-      nim@"reoriented" <- TRUE
+      nim <- reorient(nim, data, verbose=verbose)
     } else {
       nim@.Data <- array(data, nim@"dim_"[dims])
     }
